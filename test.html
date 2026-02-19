@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Advanced AngularJS App</title>
+
+    <!-- AngularJS + Routing -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular-route.min.js"></script>
+
+    <style>
+        body {
+            font-family: Segoe UI;
+            background: #eef2f5;
+            margin: 0;
+        }
+
+        nav {
+            background: #2c3e50;
+            padding: 15px;
+            text-align: center;
+        }
+
+        nav a {
+            color: white;
+            margin: 0 15px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            margin-bottom: 20px;
+        }
+
+        input, select {
+            padding: 8px;
+            width: 100%;
+            margin: 8px 0;
+        }
+
+        button {
+            padding: 8px 15px;
+            background: #3498db;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #ccc;
+            text-align: center;
+        }
+
+        th {
+            background: #34495e;
+            color: white;
+        }
+    </style>
+</head>
+
+<body ng-app="advancedApp">
+
+<!-- NAVIGATION -->
+<nav>
+    <a href="#!/dashboard">Dashboard</a>
+    <a href="#!/manage">Manage Products</a>
+</nav>
+
+<div class="container">
+    <div ng-view></div>
+</div>
+
+<script>
+    var app = angular.module("advancedApp", ["ngRoute"]);
+
+    /* ROUTING */
+    app.config(function ($routeProvider) {
+        $routeProvider
+            .when("/dashboard", {
+                template: `
+                <div class="card">
+                    <h2>📊 Dashboard</h2>
+                    <p>Total Products: {{total}}</p>
+                    <p>Last Action: {{lastAction}}</p>
+                </div>
+                `,
+                controller: "dashboardCtrl"
+            })
+            .when("/manage", {
+                template: `
+                <div class="card">
+                    <h2>🛠 Product Management</h2>
+
+                    <input type="text" ng-model="product.name" placeholder="Product Name">
+                    <input type="number" ng-model="product.price" placeholder="Price">
+                    <select ng-model="product.category">
+                        <option>Electronics</option>
+                        <option>Fashion</option>
+                        <option>Accessories</option>
+                    </select>
+
+                    <button ng-click="addProduct()">Add Product</button>
+
+                    <hr>
+
+                    <input type="text" ng-model="search" placeholder="Search...">
+
+                    <table>
+                        <tr>
+                            <th>Name</th>
+                            <th>Price</th>
+                            <th>Category</th>
+                            <th>Action</th>
+                        </tr>
+                        <tr ng-repeat="p in products | filter:search">
+                            <td highlight>{{p.name}}</td>
+                            <td>{{p.price | currency:'₹'}}</td>
+                            <td>{{p.category}}</td>
+                            <td>
+                                <button ng-click="deleteProduct($index)">Delete</button>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                `,
+                controller: "manageCtrl"
+            })
+            .otherwise({ redirectTo: "/dashboard" });
+    });
+
+    /* SERVICE (SHARED DATA) */
+    app.service("productService", function () {
+        var products = [];
+
+        this.getProducts = function () {
+            return products;
+        };
+
+        this.add = function (p) {
+            products.push(p);
+        };
+
+        this.remove = function (index) {
+            products.splice(index, 1);
+        };
+    });
+
+    /* CUSTOM DIRECTIVE */
+    app.directive("highlight", function () {
+        return {
+            restrict: "A",
+            link: function (scope, element) {
+                element.on("mouseenter", function () {
+                    element.css("background", "#f1c40f");
+                });
+                element.on("mouseleave", function () {
+                    element.css("background", "");
+                });
+            }
+        };
+    });
+
+    /* DASHBOARD CONTROLLER */
+    app.controller("dashboardCtrl", function ($scope, productService) {
+        $scope.total = productService.getProducts().length;
+        $scope.lastAction = "Application Loaded";
+
+        $scope.$watch(
+            function () {
+                return productService.getProducts().length;
+            },
+            function (newVal) {
+                $scope.total = newVal;
+                $scope.lastAction = "Product list updated";
+            }
+        );
+    });
+
+    /* MANAGEMENT CONTROLLER */
+    app.controller("manageCtrl", function ($scope, productService) {
+
+        $scope.products = productService.getProducts();
+
+        $scope.addProduct = function () {
+            productService.add(angular.copy($scope.product));
+            $scope.product = {};
+        };
+
+        $scope.deleteProduct = function (index) {
+            productService.remove(index);
+        };
+    });
+</script>
+
+</body>
+</html>
